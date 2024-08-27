@@ -1,0 +1,11 @@
+    - name: Generate RSA private key
+      openssl_privatekey:
+        path: /root/id_rsa
+        type: RSA
+        size: 2048
+        state: present
+      register: luks_keyfile
+
+    - name: Set fact with RSA key file path
+      set_fact:
+        luks_keyfile: /root/id_rsa

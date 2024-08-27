@@ -1,0 +1,25 @@
+- name: Install necessary packages
+  import_tasks: install_packages.yml
+
+- name: Gather disk and partition facts
+  setup:
+    filter: "ansible_mounts"
+
+- name: Set the root partition fact
+  set_fact:
+    root_partition: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='device') | first }}"
+
+- name: Check partitions and perform actions
+  import_tasks: partition_checks.yml
+
+- name: Generate keyfile
+  import_tasks: generate_key.yml
+
+- name: Encrypt partition if needed
+  import_tasks: encryption.yml
+
+- name: Format and mount the encrypted partition
+  import_tasks: filesystem.yml
+
+- name: Persist the mount in /etc/fstab
+  import_tasks: mount.yml

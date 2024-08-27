@@ -1,0 +1,24 @@
+    - name: Verify system is back online
+      ansible.builtin.wait_for:
+        port: 22  # Port to check if the system is back online, typically SSH (22)
+        timeout: 300  # Maximum time to wait for the port to become available
+        state: started
+        delay: 10  # Delay between retries
+
+  
+    - name: Verify the max C-state setting
+      ansible.builtin.shell: cat /sys/module/processor/parameters/max_cstate
+      register: max_cstate
+
+    - name: Display the max C-state setting
+      ansible.builtin.debug:
+        msg: "Max C-state: {{ max_cstate.stdout }}"
+
+    - name: Verify if intel_idle driver is used (if it is loaded)
+      ansible.builtin.shell: cat /sys/module/intel_idle/parameters/max_cstate
+      register: intel_idle_max_cstate
+      changed_when: False
+
+    - name: Display the max C-state for intel_idle driver (if it is loaded)
+      ansible.builtin.debug:
+        msg: "Intel Idle Max C-state: {{ intel_idle_max_cstate.stdout }}"

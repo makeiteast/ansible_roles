@@ -1,0 +1,13 @@
+    - name: Reboot the host
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+      register: reboot_result
+
+    - name: Wait for SSH to come back up
+      wait_for:
+        port: 22
+        delay: 10
+        timeout: 300
+        state: started
+      delegate_to: "{{ inventory_hostname }}"
+      when: reboot_result.changed

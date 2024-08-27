@@ -1,0 +1,11 @@
+- name: Encrypt partition if it is not already encrypted
+  expect:
+    command: cryptsetup luksFormat {{ partition }} --key-file {{ luks_keyfile }}
+    responses:
+      "(.*?)Are you sure?(.*?)" : "YES"
+      "(.*?)Enter passphrase for(.*?)" : "{{ luks_passphrase }}"
+  when: not is_encrypted
+
+- name: Open the encrypted partition
+  command: cryptsetup luksOpen {{ partition }} {{ luks_name }} --key-file {{ luks_keyfile }}
+  when: not is_encrypted

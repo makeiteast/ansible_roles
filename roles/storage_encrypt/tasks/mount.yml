@@ -1,0 +1,20 @@
+- name: Create a mount point directory
+  file:
+    path: "{{ mount_point }}"
+    state: directory
+    mode: '0755'
+
+- name: Mount the encrypted partition
+  mount:
+    path: "{{ mount_point }}"
+    src: "/dev/mapper/{{ luks_name }}"
+    fstype: ext4
+    state: mounted
+  when: not is_encrypted
+
+- name: Persist the mount in /etc/fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "/dev/mapper/{{ luks_name }} {{ mount_point }} ext4 defaults 0 2"
+    state: present
+  when: not is_encrypted

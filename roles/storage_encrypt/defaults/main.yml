@@ -1,0 +1,3 @@
+luks_passphrase: "1111"
+luks_name: encrypted_disk
+mount_point: /mnt/encrypted

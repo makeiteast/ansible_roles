@@ -1,0 +1,28 @@
+    - name: Display the idle driver the system uses
+      command: "grep -i 'idle' /proc/cmdline"
+      register: idle_driver
+      changed_when: false
+      failed_when: false
+
+    - name: Show the idle driver
+      debug:
+        msg: "Current idle driver: {{ idle_driver.stdout }}"
+
+    - name: Ensure the GRUB configuration file exists
+      stat:
+        path: /etc/default/grub
+      register: grub_file
+
+    - name: Edit GRUB configuration to add intel_idle.max_cstate=0
+      lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX='
+        line: "GRUB_CMDLINE_LINUX=\"{{ grub_cmdline_linux }}\""
+      when: grub_file.stat.exists
+      notify:
+        - Update GRUB
+
+    - include_tasks: reboot.yml
+
+    - include_tasks: verify.yml
+      

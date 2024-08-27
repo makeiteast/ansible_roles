@@ -1,0 +1,32 @@
+- name: Check if the partition is not the root partition
+  set_fact:
+    is_not_root_partition: "{{ partition != root_partition }}"
+  with_items: "{{ ansible_mounts | map(attribute='device') | list }}"
+  when: partition != root_partition
+
+- name: Stop if the partition is the root partition
+  fail:
+    msg: "The partition path is the root partition"
+  when: partition == root_partition
+
+- name: Display custom facts
+  debug:
+    msg: |
+      Root partition: {{ root_partition }}
+      Partition: {{ partition }}
+      Is not root partition: {{ is_not_root_partition }}
+  with_items: "{{ ansible_mounts | map(attribute='device') | list }}"
+  when: partition != root_partition
+
+- name: Check if the partition exists
+  stat:
+    path: "{{ partition }}"
+
+- name: Check if the partition is already encrypted
+  command: blkid "{{ partition }}"
+  register: blkid_output
+  failed_when: false
+
+- name: Set fact if partition is already encrypted
+  set_fact:
+    is_encrypted: "{{ 'crypto_LUKS' in blkid_output.stdout }}"

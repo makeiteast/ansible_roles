@@ -1,0 +1,11 @@
+   - name: Apply netplan changes
+     command: netplan apply
+     register: command_result
+     ignore_errors: true
+
+   - name: Restore netplan config on failure
+     copy:
+       src: "{{ current_netplan_config }}.bak"
+       dest: "{{ current_netplan_config }}"
+       force: yes
+     when: "'FAILED' or 'Failed' or 'FAILED' or 'Error' in command_result.stderr"

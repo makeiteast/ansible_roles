@@ -1,0 +1,3 @@
+- name: Format the opened LUKS partition as ext4
+  command: mkfs.ext4 /dev/mapper/{{ luks_name }}
+  when: not is_encrypted

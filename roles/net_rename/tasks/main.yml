@@ -1,0 +1,107 @@
+    - name: Check for default netplan config file
+      stat:
+        path: /etc/netplan/01-netcfg.yaml
+      register: default_netplan_config
+
+    - name: Print int
+      debug:
+        msg: "Current network config: {{ ansible_default_ipv4.interface }}"
+
+    - name: Print var
+      debug:
+        msg: "{{ interface_name }}"
+
+    - name: Check for other common netplan config file locations
+      stat:
+        path: /etc/netplan/50-cloud-init.yaml
+      register: cloud_config_netplan
+
+    - name: Check for netplan config files in netplan directory
+      find:
+        path: /etc/netplan/
+        file_type: file
+      register: netplan_config_files
+
+    - name: Determine the current configuration file
+      set_fact:
+        current_netplan_config: "{{ default_netplan_config.stat.exists and '/etc/netplan/00-netcfg.yaml' }}"
+      when: default_netplan_config.stat.exists
+
+    - name: Determine the current configuration file (cloud-config)
+      set_fact:
+        current_netplan_config: "{{ cloud_config_netplan.stat.exists and '/etc/netplan/50-cloud-init.yaml' }}"
+      when: cloud_config_netplan.stat.exists and current_netplan_config is not defined
+
+    - name: Determine the current configuration file (other)
+      set_fact:
+        current_netplan_config: "{{ netplan_config_files.files[0].path }}"
+      when: current_netplan_config is not defined and netplan_config_files.files is defined
+
+    - name: Print the current netplan config file
+      debug:
+        msg: "Current netplan config file: {{ current_netplan_config }}"
+
+    - name: Print the current network config
+      debug:
+        msg: "Current network config: {{ ansible_default_ipv4 }}"
+
+    - name: Backup existing netplan config
+      copy:
+        src: "{{ current_netplan_config }}"
+        dest: "{{ current_netplan_config }}.bak"
+        remote_src: true
+        force: yes
+
+    - name: Slurp YAML file
+      slurp:
+        src: "{{ current_netplan_config }}"
+      register: yaml_data
+
+    - name: Convert YAML to JSON
+      set_fact:
+        json_data: "{{ yaml_data.content | b64decode | from_yaml }}"
+
+    - name: Insert new key and attribute
+      set_fact:
+        updated_json_data: >-
+          {{
+            json_data | combine(
+              {'network':
+                  {'ethernets':
+                    {interface_name: json_data.network.ethernets[interface_name] | combine(
+                        {attr_name: new_interface_name})}}}
+            )
+          }}
+
+    - name: Check if match exists
+      set_fact:
+        nested_key_exists: "{{ json_data['network']['ethernets']['eth0']['match'] is defined }}"
+
+    - name: Insert match and attribute
+      set_fact:
+        updated_json_data: >-
+          {{
+            updated_json_data | combine(
+              {'network':
+                  {'ethernets':
+                    {interface_name: updated_json_data.network.ethernets[interface_name] | combine(
+                        {'match':
+                          {'macaddress': mac}})}}}
+             )
+          }}
+      when: not nested_key_exists
+
+    - name: Print JSON output
+      debug:
+        msg: "{{ updated_json_data | to_json }}"
+
+    - name: Convert updated JSON data back to YAML
+      set_fact:
+        updated_yaml_data: "{{ updated_json_data | to_yaml }}"
+
+    - name: Save updated YAML data to file
+      copy:
+        content: "{{ updated_yaml_data }}"
+        dest: "{{ current_netplan_config }}"
+      notify: 
+        - Apply netplan changes

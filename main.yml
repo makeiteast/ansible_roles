@@ -1,0 +1,6 @@
+- hosts: servers
+  become: yes
+  roles:
+    - cpu_performance
+    - storage_encrypt
+    - net_rename
