@@ -1,0 +1,51 @@
+    - name: Get number of physial cpu's
+      shell: "grep physical.id /proc/cpuinfo | sort -u | wc -l "
+      register: phys_cpu_output
+
+    - name: Extract number of physial cpu's
+      set_fact:
+        phys_cpu: "{{ phys_cpu_output.stdout | int }}"
+
+    - name: Get CPU core count using grep
+      shell: "grep 'cpu cores' /proc/cpuinfo | uniq"
+      register: cpu_info
+
+    - name: Extract the number of cores per CPU
+      set_fact:
+        cores_per_cpu: "{{ cpu_info.stdout.split(':')[1] | trim }}"
+
+    - name: Total number of cpu's
+      set_fact:
+        total_cpu: "{{ phys_cpu | int * cores_per_cpu | int }}"
+
+    - name: Get total number of threads
+      shell: "grep -c 'processor' /proc/cpuinfo"
+      register: threads_output
+
+    - name: Extract total number of threads
+      set_fact:
+        total_threads: "{{ threads_output.stdout | int }}"
+
+    - name: Run lscpu command
+      command: lscpu
+      register: lscpu_output
+
+    - name: Extract CPU vendor
+      set_fact:
+        cpu_vendor: "{{ lscpu_output.stdout_lines | select('match', '^Vendor ID:') | first | regex_replace('^Vendor ID:', '') | trim }}"
+
+
+    - name: Determine if hyperthreading is enabled
+      debug:
+        msg: 
+         - "Number of physial cpu's: {{ phys_cpu }} "
+         - "Number of cores per CPU: {{ cores_per_cpu }}"
+         - "Total number of threads: {{ total_threads }}"
+         - "Total number of cpu: {{ total_cpu }}"
+         - "Hyperthreading is
+          {% if total_threads | int <= (total_cpu | int * 2 ) %}
+            disabled
+          {% else %}
+            enabled
+          {% endif %}"
+         - "CPU Vendor: {{ cpu_vendor }}" 
