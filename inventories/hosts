@@ -1,2 +1,4 @@
 [servers]
-server1 ansible_host=10.5.61.55 ansible_user=yb
+server1 ansible_host=<host_ip> ansible_user=<host_username>
+server2 ansible_host=<host_ip> ansible_user=<host_username>
+server3 ansible_host=<host_ip> ansible_user=<host_username>
